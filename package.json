@@ -1,0 +1,48 @@
+{
+  "name": "ble-hunter",
+  "productName": "BLE Hunter",
+  "version": "1.0.0",
+  "description": "Universal BLE Explorer & Reverse Engineering Tool",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "pack": "electron-builder --dir"
+  },
+  "keywords": [
+    "ble",
+    "bluetooth",
+    "reverse-engineering",
+    "iot",
+    "explorer"
+  ],
+  "author": "Nikita Contreras",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.nikitacontreras.blehunter",
+    "productName": "BLE Hunter",
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "directories": {
+      "output": "dist"
+    }
+  }
+}

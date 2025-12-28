@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLE Hunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        ble: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
+                        re: { 500: '#8b5cf6', 600: '#7c3aed' },
+                        success: '#10b981', warning: '#f59e0b', error: '#ef4444',
+                        purple: { 800: '#5b21b6', 700: '#7c3aed', 100: '#e9d5ff' }
+                    },
+                    fontFamily: { mono: ['JetBrains Mono', 'ui-monospace', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="h-screen flex flex-col text-slate-200 overflow-hidden">
+    <!-- Header -->
+    <header class="glass-panel border-b border-white/5 p-3 flex justify-between items-center z-20 shrink-0">
+        <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 text-re-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z">
+                </path>
+            </svg>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight text-white leading-tight">BLE <span
+                        class="text-re-500">Hunter</span></h1>
+            </div>
+        </div>
+
+        <!-- Connection Status & Device Header -->
+        <div class="flex items-center gap-6">
+            <div id="device-header" class="hidden items-center gap-4 border-r border-white/10 pr-6">
+                <!-- Icon & Status -->
+                <div class="flex flex-col items-center">
+                    <div
+                        class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 mb-1">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <span
+                        class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[9px] font-bold border border-emerald-500/20">CONNECTED</span>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="space-y-1">
+                    <div class="flex items-baseline gap-2">
+                        <div id="dh-name" class="text-sm font-bold text-white leading-none">HF-795</div>
+                        <span id="dh-mac" class="text-[10px] font-mono text-slate-500">XX:XX:XX:XX:XX:XX</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-x-6 gap-y-0.5 text-[10px] text-slate-400">
+                        <div>Mfr: <span id="dh-mfr" class="text-slate-200">Unknown</span></div>
+                        <div>Model: <span id="dh-model" class="text-slate-200">Generic</span></div>
+                        <div>FW: <span id="dh-fw" class="text-slate-200">v--.--</span></div>
+                        <div>Proto: <span id="dh-proto" class="text-ble-400 font-bold">Auto-Detecting...</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="connectionStatus"
+                class="hidden items-center gap-2 px-3 py-1 rounded bg-slate-900/50 border border-white/5 text-xs text-slate-400 transition-all">
+                <span class="w-2 h-2 rounded-full bg-slate-600" id="statusDot"></span>
+                <span id="statusText">Disconnected</span>
+            </div>
+            <button id="connectBtn"
+                class="bg-ble-600 hover:bg-ble-500 text-white text-xs font-bold py-1.5 px-4 rounded transition shadow-lg shadow-ble-500/20 flex gap-2 items-center">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                CONNECT
+            </button>
+            <button id="disconnectBtn"
+                class="hidden bg-red-900/50 hover:bg-red-800 text-red-100 text-xs font-bold py-1.5 px-4 rounded border border-red-500/20">
+                DISCONNECT
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex overflow-hidden">
+        <!-- Sidebar: Discovery Controls -->
+        <aside class="w-72 glass-panel border-r border-white/5 flex flex-col z-10 bg-slate-900/50">
+            <!-- Tabs Header -->
+            <div class="flex text-xs font-medium border-b border-white/5">
+                <button class="flex-1 py-3 text-center transition hover:bg-white/5 tab-active"
+                    id="tab-discovery">Discovery</button>
+                <button class="flex-1 py-3 text-center transition hover:bg-white/5 text-slate-400"
+                    id="tab-manual">Manual</button>
+            </div>
+
+            <!-- Discovery Content -->
+            <div id="panel-discovery" class="flex-1 flex flex-col p-4 overflow-y-auto space-y-4">
+                <!-- Step 1: GATT -->
+                <div class="space-y-2">
+                    <h3
+                        class="text-xs font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                        1. GATT Profile
+                        <span id="gatt-badge"
+                            class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 text-[10px]">Pending</span>
+                    </h3>
+                    <div id="gatt-stats" class="text-[10px] text-slate-500 font-mono bg-black/20 p-2 rounded">
+                        Not scanned yet.
+                    </div>
+                </div>
+
+                <!-- Step 2: Frame Discovery -->
+                <div class="space-y-2">
+                    <h3
+                        class="text-xs font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                        2. Frame Structure
+                        <button id="start-frame-btn"
+                            class="text-[10px] bg-re-600 hover:bg-re-500 text-white px-2 py-0.5 rounded disabled:opacity-50"
+                            disabled>Auto-Detect</button>
+                    </h3>
+                    <div
+                        class="bg-black/20 p-2 rounded border border-white/5 min-h-[60px] flex items-center justify-center">
+                        <div id="frame-viz" class="flex gap-1">
+                            <span class="text-slate-600 text-[10px] italic">Waiting for analysis...</span>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-slate-400 flex justify-between px-1">
+                        <span>Checksum: <span id="chk-algo" class="text-white font-mono">-</span></span>
+                        <span>Len Byte: <span id="len-byte" class="text-white font-mono">-</span></span>
+                    </div>
+                </div>
+
+                <!-- Step 3: Fuzzing -->
+                <div class="space-y-2 flex-1 flex flex-col">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Command Fuzzing</h3>
+                        <div class="flex gap-1">
+                            <button id="fuzz-play"
+                                class="p-1 hover:bg-white/10 rounded text-green-400 disabled:opacity-30" disabled
+                                title="Start Fuzzing">▶</button>
+                            <button id="fuzz-pause"
+                                class="p-1 hover:bg-white/10 rounded text-yellow-400 disabled:opacity-30" disabled
+                                title="Pause">⏸</button>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-slate-500 mb-1">Testing 0x00 - 0xFF for responses</div>
+                    <div id="cmd-grid"
+                        class="hex-grid flex-1 content-start bg-black/20 p-1 rounded overflow-y-auto max-h-[200px]">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Content (Hidden) -->
+            <div id="panel-manual" class="flex-1 hidden flex-col overflow-hidden">
+                <!-- Editor -->
+                <div class="p-4 space-y-2 border-b border-white/5 bg-slate-900/50">
+                    <label class="block text-[10px] uppercase text-slate-500 font-bold">Command Editor</label>
+                    <div class="relative">
+                        <textarea id="manual-input"
+                            class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs font-mono text-white h-20 focus:ring-1 focus:ring-ble-500 outline-none placeholder-slate-600 resize-none"
+                            placeholder="AA 55 01..."></textarea>
+                        <div class="absolute bottom-2 right-2 flex gap-1">
+                            <button id="manual-checksum"
+                                class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-[9px] rounded text-slate-300">+Chk</button>
+                            <button id="send-manual"
+                                class="px-3 py-0.5 bg-ble-600 hover:bg-ble-500 text-[9px] font-bold rounded text-white">SEND</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Template Library -->
+                <div class="flex-1 flex flex-col min-h-0">
+                    <div class="flex border-b border-white/5 bg-slate-900/50 text-[10px]">
+                        <button
+                            class="flex-1 py-2 text-slate-400 hover:text-white border-b-2 border-transparent hover:border-ble-500"
+                            data-template-filter="all">All</button>
+                        <button
+                            class="flex-1 py-2 text-slate-400 hover:text-white border-b-2 border-transparent hover:border-ble-500"
+                            data-template-filter="info">Info</button>
+                        <button
+                            class="flex-1 py-2 text-slate-400 hover:text-white border-b-2 border-transparent hover:border-ble-500"
+                            data-template-filter="config">Config</button>
+                        <button
+                            class="flex-1 py-2 text-slate-400 hover:text-white border-b-2 border-transparent hover:border-ble-500"
+                            data-template-filter="ota">OTA</button>
+                    </div>
+                    <div id="template-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Macro Recorder Controls -->
+                <div class="p-2 bg-slate-900/80 border-t border-white/5 flex items-center justify-between">
+                    <span class="text-[10px] text-slate-500">Macro Recorder</span>
+                    <div class="flex gap-2">
+                        <button class="text-red-400 hover:text-red-300 text-[10px]">● Rec</button>
+                        <button class="text-green-400 hover:text-green-300 text-[10px]">▶ Play</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global Sidebar Footer -->
+            <div class="p-3 border-t border-white/5 text-[10px] text-slate-500 flex justify-between">
+                <button id="export-json" class="hover:text-white underline">Export JSON</button>
+                <a href="https://github.com/nikitacontreras/ble-hunter" target="_blank"><span
+                        id="version">nikitacontreras/ble-hunter</span></a>
+            </div>
+        </aside>
+
+        <!-- Center: Visualization & Logs -->
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-900">
+            <!-- Results / Protocol Viewer -->
+            <div class="h-1/2 border-b border-white/5 bg-slate-800/20 flex flex-col">
+                <div class="p-3 border-b border-white/5 flex justify-between items-center bg-slate-900/40">
+                    <h2 class="text-sm font-semibold text-white flex items-center gap-2">
+                        <svg class="w-4 h-4 text-ble-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                            </path>
+                        </svg>
+                        Device Explorer (Services & Attributes)
+                    </h2>
+                    <div class="flex gap-2 text-[10px]">
+                        <span class="px-2 py-1 bg-slate-800 rounded text-slate-400 border border-white/5">Auto-Read
+                            ON</span>
+                    </div>
+                </div>
+
+                <!-- Tree Container -->
+                <div id="gatt-tree" class="flex-1 overflow-y-auto p-4 space-y-2 relative">
+                    <div
+                        class="absolute inset-0 flex items-center justify-center text-slate-600 flex-col gap-2 pointer-events-none opacity-50">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <span class="text-xs">Connect to a device to explore services</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal -->
+            <div class="flex-1 flex flex-col min-h-0 bg-slate-950">
+                <div class="p-2 border-b border-white/5 flex justify-between items-center bg-slate-900/50">
+                    <span class="text-xs font-mono text-slate-400">Live Traffic</span>
+                    <div class="flex gap-2">
+                        <label class="text-[10px] text-slate-500 flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" id="autoscroll" checked
+                                class="rounded bg-slate-800 border-slate-700"> Autoscroll
+                        </label>
+                        <button id="clear-logs" class="text-[10px] text-slate-500 hover:text-white">Clear</button>
+                        <button id="keep-alive-toggle" class="text-[10px] text-slate-500 hover:text-white">Keep-Alive:
+                            OFF</button>
+                    </div>
+                </div>
+                <div id="console-logs" class="flex-1 overflow-y-auto p-2 font-mono scroll-smooth">
+                    <!-- Logs go here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-settings"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div
+            class="bg-slate-900 border border-white/10 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-white/5 flex justify-between items-center bg-slate-800/50 shrink-0">
+                <h3 class="text-sm font-bold text-white">Connection Manager</h3>
+                <button id="modal-close" class="text-slate-400 hover:text-white">&times;</button>
+            </div>
+
+            <div class="p-6 overflow-y-auto">
+                <!-- Favorites Section -->
+                <div class="space-y-2 mb-6">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Favorites</h4>
+                    <div id="favorites-list" class="space-y-1 min-h-[40px]">
+                        <p class="text-[10px] text-slate-600 italic">No favorites saved.</p>
+                    </div>
+                </div>
+
+                <!-- Generic Connection -->
+                <div class="space-y-4 pt-4 border-t border-white/5">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">New Connection</h4>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1">Optional Service UUIDs (comma
+                            separated)</label>
+                        <input type="text" id="cfg-services" placeholder="e.g. 6e401301-..., 0000180f..."
+                            class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-white placeholder-slate-600">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1">Name Prefix Filter
+                            (Optional)</label>
+                        <input type="text" id="cfg-filter" placeholder="e.g. MyDevice"
+                            class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-white placeholder-slate-600">
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="cfg-all-devices"
+                            class="rounded bg-slate-800 border-slate-700 text-ble-500 focus:ring-ble-500">
+                        <label for="cfg-all-devices" class="text-xs text-slate-300">Accept All Devices (Show
+                            Everything)</label>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="cfg-clear-session" checked
+                            class="rounded bg-slate-800 border-slate-700 text-red-500 focus:ring-red-500">
+                        <label for="cfg-clear-session" class="text-xs text-slate-300">Clear Previous Session
+                            Data</label>
+                    </div>
+
+                    <button id="modal-connect-action"
+                        class="w-full bg-ble-600 hover:bg-ble-500 text-white font-bold py-3 rounded mt-2 shadow-lg shadow-ble-500/20">
+                        Start Scan & Connect
+                    </button>
+
+                    <p class="text-[10px] text-slate-500 text-center">
+                        Check Electron permissions if scanning fails.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bluetooth Device Picker Modal -->
+    <div id="modal-picker"
+        class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+        <div
+            class="bg-slate-900 border border-ble-500/50 rounded-xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col max-h-[80vh]">
+            <div class="p-4 border-b border-white/10 flex justify-between items-center bg-ble-900/20">
+                <div class="flex items-center gap-2 animate-pulse">
+                    <div class="w-2 h-2 rounded-full bg-blue-400"></div>
+                    <h3 class="text-sm font-bold text-white">Scanning for Devices...</h3>
+                </div>
+                <button id="picker-cancel" class="text-slate-400 hover:text-white text-xs">Cancel</button>
+            </div>
+            <div id="picker-list" class="p-2 overflow-y-auto space-y-1 min-h-[200px]">
+                <!-- Filled via JS -->
+                <div class="text-center text-xs text-slate-500 mt-10">Scanning...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Entry Module -->
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>
