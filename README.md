@@ -1,5 +1,7 @@
 # BLE Hunter
 
+![Main Screen](main-screen.png)
+
 Universal BLE Explorer & Reverse Engineering Tool.
 
 This application is designed to facilitate interaction with Bluetooth Low Energy (BLE) devices. It acts as a central console for connecting to devices, exploring their services and characteristics, decoding protocols, and sending commands. It is particularly useful for IoT developers and reverse engineering enthusiasts working with unknown BLE protocols (e.g., smartwatches, trackers).
